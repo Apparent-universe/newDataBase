@@ -1,0 +1,19 @@
+{
+    "python.defaultInterpreterPath": "D:/code/pytorchppp/ANACONDA/envs/chatModel/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "terminal.integrated.profiles.windows": {
+        "Command Prompt": {
+            "path": "cmd.exe",
+            "args": ["/K", "D:/code/pytorchppp/ANACONDA/Scripts/activate.bat D:/code/pytorchppp/ANACONDA && conda activate chatModel"]
+        }
+    },
+    "python.terminal.executeInFileDir": true,
+    "python.terminal.launchArgs": ["-i"],
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}",
+        "D:/code/pytorchppp/ANACONDA/envs/chatModel/Lib/site-packages"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true
+}

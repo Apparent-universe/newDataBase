@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 丢物小助手{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center bg-light p-4 p-md-5 rounded-3 mb-4">
+    <h1 class="display-4 fs-2 fs-md-4">欢迎使用丢物小助手</h1>
+    <p class="lead">帮助失主找回失物，让每一件丢失的物品都能回家</p>
+    <hr class="my-4">
+    <p>您是否捡到了他人的物品？或者正在寻找丢失的物品？</p>
+    <div class="mt-4 d-grid gap-2 d-md-block">
+        {% if current_user.is_authenticated %}
+            <a class="btn btn-primary btn-lg mb-2 mb-md-0" href="{{ url_for('main.publish') }}" role="button">发布拾获物品</a>
+        {% else %}
+            <a class="btn btn-primary btn-lg mb-2 mb-md-0" href="{{ url_for('main.login') }}" role="button">登录发布物品</a>
+            <a class="btn btn-outline-primary btn-lg mb-2 mb-md-0" href="{{ url_for('main.register') }}" role="button">注册成为探员</a>
+        {% endif %}
+        <a class="btn btn-success btn-lg" href="{{ url_for('main.search') }}" role="button">搜索丢失物品</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3 class="card-title h4">发布物品</h3>
+                <p class="card-text">成为探员，发布您捡到的物品信息，帮助失主找回失物。</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3 class="card-title h4">搜索物品</h3>
+                <p class="card-text">丢失物品了？通过关键词或地点快速查找相关信息。</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3 class="card-title h4">打赏感谢</h3>
+                <p class="card-text">找到物品后，可以给热心的探员一些感谢打赏。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if latest_items %}
+<div class="mt-5">
+    <h2 class="mb-4 fs-3">最新拾获物品</h2>
+    <div class="row g-3">
+        {% for record in latest_items %}
+        <div class="col-12 col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-break">拾获地点: {{ record.pickup_location }}</h5>
+                    <p class="card-text"><strong>代表性物品:</strong></p>
+                    <ul class="list-unstyled">
+                        {% for item in record.items %}
+                            {% if item.is_representative %}
+                                <li class="badge bg-primary me-2">{{ item.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                    <p class="card-text text-break">{{ record.detailed_description }}</p>
+                    <p class="card-text"><small class="text-muted">拾获时间: {{ record.created_time }}</small></p>
+                </div>
+                <div class="card-footer text-center text-md-start">
+                    <a href="{{ url_for('main.search') }}?record_id={{ record.record_id }}" class="btn btn-primary w-100 w-md-auto">查看详情</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}个人中心 - 丢物小助手{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- 个人信息卡片 -->
+    <div class="col-12 col-lg-8 order-2 order-lg-1">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h3 class="mb-0 fs-4">个人信息</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.profile') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <div class="mb-4">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control form-control-lg bg-light" value="{{ current_user.username }}" readonly>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="contact" class="form-label">联系方式</label>
+                        <input type="text" class="form-control form-control-lg" id="contact" name="contact" 
+                               value="{{ current_user.contact or '' }}" placeholder="请输入您的联系方式">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="free_time" class="form-label">空闲时间</label>
+                        <input type="text" class="form-control form-control-lg" id="free_time" name="free_time" 
+                               value="{{ current_user.free_time or '' }}" placeholder="例如：工作日晚上6点后">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="personal_info" class="form-label">个人简介</label>
+                        <textarea class="form-control" id="personal_info" name="personal_info" rows="3" 
+                                  placeholder="简单介绍一下自己吧">{{ current_user.personal_info or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="wx_qrcode" class="form-label">微信收款码</label>
+                        {% if current_user.wx_qrcode %}
+                            <div class="mb-3 text-center">
+                                <img src="{{ url_for('static', filename='uploads/' + current_user.wx_qrcode) }}" 
+                                     class="img-thumbnail" style="max-width: 200px"
+                                     alt="当前微信收款码">
+                            </div>
+                        {% endif %}
+                        <input type="file" class="form-control" id="wx_qrcode" name="wx_qrcode" accept="image/*">
+                        <div class="form-text">支持jpg、png格式，建议尺寸300x300像素</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">保存修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 账号状态和数据统计卡片 -->
+    <div class="col-12 col-lg-4 order-1 order-lg-2">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h4 class="mb-0 fs-5">账号状态</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>角色</span>
+                    <span class="badge bg-primary">{{ '管理员' if current_user.role == 'admin' else '探员' }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>状态</span>
+                    {% if current_user.status == 1 %}
+                        <span class="badge bg-success">正常</span>
+                    {% else %}
+                        <span class="badge bg-danger">已封禁</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>注册时间</span>
+                    <span class="text-muted">{{ current_user.created_time.strftime('%Y-%m-%d') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h4 class="mb-0 fs-5">数据统计</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>已发布物品</span>
+                    <span class="badge bg-primary">{{ records_count }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>收到打赏</span>
+                    <span class="badge bg-success">{{ total_rewards }}元</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>已归档记录</span>
+                    <span class="badge bg-secondary">{{ archived_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if my_records %}
+<div class="mt-5">
+    <h3 class="mb-4 fs-4">我的发布记录</h3>
+    <div class="table-responsive">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>发布时间</th>
+                                <th>拾获地点</th>
+                                <th>代表性物品</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in my_records %}
+                            <tr>
+                                <td>{{ record.created_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td class="text-break">{{ record.pickup_location }}</td>
+                                <td>
+                                    {% for item in record.items %}
+                                        {% if item.is_representative %}
+                                            <span class="badge bg-primary me-1">{{ item.name }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if record.is_archived %}
+                                        <span class="badge bg-secondary">已归档</span>
+                                    {% else %}
+                                        <span class="badge bg-success">活跃</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not record.is_archived %}
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-warning" data-record-id="{{ record.record_id }}" 
+                                                    onclick="archiveRecord('{{ record.record_id }}')">
+                                                归档
+                                            </button>
+                                            <button type="button" class="btn btn-danger" data-record-id="{{ record.record_id }}"
+                                                    onclick="deleteRecord('{{ record.record_id }}')">
+                                                删除
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 表单验证
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    }, false);
+
+    // 文件上传预览
+    const fileInput = document.getElementById('wx_qrcode');
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            // 验证文件类型
+            if (!file.type.match('image.*')) {
+                alert('请上传图片文件');
+                this.value = '';
+                return;
+            }
+            // 验证文件大小（最大2MB）
+            if (file.size > 2 * 1024 * 1024) {
+                alert('图片大小不能超过2MB');
+                this.value = '';
+                return;
+            }
+        }
+    });
+});
+
+async function archiveRecord(recordId) {
+    if (!confirm('确定要归档这条记录吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/found-items/${recordId}/archive`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        alert(data.message);
+        location.reload();
+    } catch (error) {
+        console.error('归档失败:', error);
+        alert('操作失败，请重试');
+    }
+}
+
+async function deleteRecord(recordId) {
+    if (!confirm('确定要删除这条记录吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/found-items/${recordId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        alert(data.message);
+        location.reload();
+    } catch (error) {
+        console.error('删除失败:', error);
+        alert('操作失败，请重试');
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@media (max-width: 768px) {
+    .card {
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    
+    .card-header {
+        background: transparent;
+        padding: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .form-control-lg {
+        font-size: 1rem;
+    }
+    
+    .table {
+        font-size: 0.875rem;
+    }
+    
+    .table td, .table th {
+        padding: 0.75rem;
+    }
+    
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+}
+
+/* 表格响应式处理 */
+@media (max-width: 576px) {
+    .table-responsive {
+        border: 0;
+    }
+    
+    .table {
+        border: 0;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table tr {
+        display: block;
+        border: 1px solid #dee2e6;
+        margin-bottom: 1rem;
+    }
+    
+    .table td {
+        display: block;
+        text-align: right;
+        padding: 0.5rem 1rem;
+        border: none;
+    }
+    
+    .table td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+    }
+    
+    .table td:last-child {
+        border-bottom: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% endblock %}
