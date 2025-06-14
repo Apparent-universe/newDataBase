@@ -26,4 +26,4 @@ if __name__ == '__main__':
             print("数据库表创建成功!")
         except Exception as e:
             print(f"数据库初始化错误: {e}")
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5050)
