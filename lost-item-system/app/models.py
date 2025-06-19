@@ -46,7 +46,6 @@ class FoundItem(db.Model):
     item_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     record_id = db.Column(db.Integer, db.ForeignKey('found_record.record_id'), nullable=False)
     item_name = db.Column(db.String(100), nullable=False)
-    is_representative = db.Column(db.Boolean, default=False)
 
 class Reward(db.Model):
     __tablename__ = 'reward'

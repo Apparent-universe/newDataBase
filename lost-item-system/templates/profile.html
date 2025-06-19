@@ -116,7 +116,7 @@
                             <tr>
                                 <th>发布时间</th>
                                 <th>拾获地点</th>
-                                <th>代表性物品</th>
+                                <th>拾获物品</th>
                                 <th>状态</th>
                                 <th>操作</th>
                             </tr>
@@ -128,31 +128,23 @@
                                 <td class="text-break">{{ record.pickup_location }}</td>
                                 <td>
                                     {% for item in record.items %}
-                                        {% if item.is_representative %}
-                                            <span class="badge bg-primary me-1">{{ item.name }}</span>
-                                        {% endif %}
+                                        <span class="badge bg-primary me-1">{{ item.item_name }}</span>
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    {% if record.is_archived %}
-                                        <span class="badge bg-secondary">已归档</span>
-                                    {% else %}
-                                        <span class="badge bg-success">活跃</span>
-                                    {% endif %}
+                                    <span class="badge bg-success">活跃</span>
                                 </td>
                                 <td>
-                                    {% if not record.is_archived %}
-                                        <div class="btn-group btn-group-sm">
-                                            <button type="button" class="btn btn-warning" data-record-id="{{ record.record_id }}" 
-                                                    onclick="archiveRecord('{{ record.record_id }}')">
-                                                归档
-                                            </button>
-                                            <button type="button" class="btn btn-danger" data-record-id="{{ record.record_id }}"
-                                                    onclick="deleteRecord('{{ record.record_id }}')">
-                                                删除
-                                            </button>
-                                        </div>
-                                    {% endif %}
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-warning" data-record-id="{{ record.record_id }}" 
+                                                onclick="archiveRecord('{{ record.record_id }}')">
+                                            归档
+                                        </button>
+                                        <button type="button" class="btn btn-danger" data-record-id="{{ record.record_id }}"
+                                                onclick="deleteRecord('{{ record.record_id }}')">
+                                            删除
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -168,28 +160,16 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 表单验证
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-    }, false);
-
-    // 文件上传预览
+    // 文件上传验证
     const fileInput = document.getElementById('wx_qrcode');
     fileInput.addEventListener('change', function() {
         if (this.files && this.files[0]) {
             const file = this.files[0];
-            // 验证文件类型
             if (!file.type.match('image.*')) {
                 alert('请上传图片文件');
                 this.value = '';
                 return;
             }
-            // 验证文件大小（最大2MB）
             if (file.size > 2 * 1024 * 1024) {
                 alert('图片大小不能超过2MB');
                 this.value = '';
@@ -200,55 +180,33 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function archiveRecord(recordId) {
-    if (!confirm('确定要归档这条记录吗？')) {
-        return;
-    }
+    if (!confirm('确定要归档这条记录吗？')) return;
     
     try {
         const response = await fetch(`/api/found-items/${recordId}/archive`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
         const data = await response.json();
         alert(data.message);
         location.reload();
     } catch (error) {
-        console.error('归档失败:', error);
         alert('操作失败，请重试');
     }
 }
 
 async function deleteRecord(recordId) {
-    if (!confirm('确定要删除这条记录吗？此操作不可恢复！')) {
-        return;
-    }
+    if (!confirm('确定要删除这条记录吗？此操作不可恢复！')) return;
     
     try {
         const response = await fetch(`/api/found-items/${recordId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
         const data = await response.json();
         alert(data.message);
         location.reload();
     } catch (error) {
-        console.error('删除失败:', error);
         alert('操作失败，请重试');
     }
 }
@@ -258,79 +216,9 @@ async function deleteRecord(recordId) {
 {% block extra_css %}
 <style>
 @media (max-width: 768px) {
-    .card {
-        border: none;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
-    }
-    
-    .card-header {
-        background: transparent;
-        padding: 1rem;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .form-control-lg {
-        font-size: 1rem;
-    }
-    
-    .table {
-        font-size: 0.875rem;
-    }
-    
-    .table td, .table th {
-        padding: 0.75rem;
-    }
-    
-    .btn-group-sm > .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-    
-    .badge {
-        font-size: 0.75rem;
-    }
-}
-
-/* 表格响应式处理 */
-@media (max-width: 576px) {
-    .table-responsive {
-        border: 0;
-    }
-    
-    .table {
-        border: 0;
-    }
-    
-    .table thead {
-        display: none;
-    }
-    
-    .table tr {
-        display: block;
-        border: 1px solid #dee2e6;
-        margin-bottom: 1rem;
-    }
-    
-    .table td {
-        display: block;
-        text-align: right;
-        padding: 0.5rem 1rem;
-        border: none;
-    }
-    
-    .table td::before {
-        content: attr(data-label);
-        float: left;
-        font-weight: bold;
-    }
-    
-    .table td:last-child {
-        border-bottom: 0;
-    }
+    .card-body { padding: 1rem; }
+    .table { font-size: 0.875rem; }
+    .btn-group-sm > .btn { padding: 0.25rem 0.5rem; }
 }
 </style>
 {% endblock %}

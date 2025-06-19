@@ -55,14 +55,12 @@
             <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title text-break">拾获地点: {{ record.pickup_location }}</h5>
-                    <p class="card-text"><strong>代表性物品:</strong></p>
-                    <ul class="list-unstyled">
+                    <p class="card-text"><strong>拾获物品:</strong></p>
+                    <div class="mb-2">
                         {% for item in record.items %}
-                            {% if item.is_representative %}
-                                <li class="badge bg-primary me-2">{{ item.name }}</li>
-                            {% endif %}
+                            <span class="badge bg-primary me-1 mb-1">{{ item.item_name }}</span>
                         {% endfor %}
-                    </ul>
+                    </div>
                     <p class="card-text text-break">{{ record.detailed_description }}</p>
                     <p class="card-text"><small class="text-muted">拾获时间: {{ record.created_time }}</small></p>
                 </div>

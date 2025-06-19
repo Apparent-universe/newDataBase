@@ -76,32 +76,18 @@
     {% block extra_js %}{% endblock %}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 处理移动端导航栏自动收起
+        // 移动端导航栏自动收起
         const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
         const navbarCollapse = document.querySelector('.navbar-collapse');
         const bsCollapse = new bootstrap.Collapse(navbarCollapse, {toggle: false});
         
         navLinks.forEach(link => {
             link.addEventListener('click', () => {
-                if (window.innerWidth < 992) { // Bootstrap lg breakpoint
+                if (window.innerWidth < 992) {
                     bsCollapse.hide();
                 }
             });
         });
-
-        // 处理图片懒加载
-        const lazyImages = document.querySelectorAll('img[loading="lazy"]');
-        if ('loading' in HTMLImageElement.prototype) {
-            lazyImages.forEach(img => {
-                img.classList.add('lazy-load');
-                img.addEventListener('load', () => {
-                    img.classList.add('loaded');
-                });
-            });
-        }
-
-        // 优化移动端触摸体验
-        document.addEventListener('touchstart', function() {}, {passive: true});
     });
     </script>
 </body>

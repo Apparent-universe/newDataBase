@@ -43,28 +43,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // 表单验证
-    const forms = document.querySelectorAll('.needs-validation');
-    Array.from(forms).forEach(form => {
-        form.addEventListener('submit', event => {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            form.classList.add('was-validated');
-        }, false);
-    });
-
-    // 移动端键盘优化
-    const inputs = document.querySelectorAll('input');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            // 在移动设备上，输入框获得焦点时滚动到可见区域
-            if (window.innerWidth < 768) {
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            }
-        });
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
     });
 });
 </script>
@@ -73,21 +58,8 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block extra_css %}
 <style>
 @media (max-width: 768px) {
-    .card {
-        border: none;
-        box-shadow: none;
-    }
-    .card-header {
-        background: transparent;
-        border-bottom: none;
-        padding-top: 2rem;
-    }
-    .form-control-lg {
-        font-size: 1rem;
-    }
-    .btn-lg {
-        padding: 0.75rem 1rem;
-    }
+    .card { border: none; box-shadow: none; }
+    .card-header { background: transparent; border-bottom: none; }
 }
 </style>
 {% endblock %}

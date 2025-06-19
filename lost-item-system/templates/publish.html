@@ -28,12 +28,7 @@
                                                 <input type="text" class="form-control" name="items[][name]" 
                                                        placeholder="物品名称" required>
                                             </div>
-                                            <div class="col-12 d-flex justify-content-between align-items-center mt-2">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="items[][is_representative]" 
-                                                           class="form-check-input" value="true">
-                                                    <label class="form-check-label">代表性物品</label>
-                                                </div>
+                                            <div class="col-12 d-flex justify-content-end mt-2">
                                                 <button type="button" class="btn btn-outline-danger btn-sm remove-item">
                                                     删除物品
                                                 </button>
@@ -79,7 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
     addButton.addEventListener('click', function() {
         const template = container.querySelector('.item-entry').cloneNode(true);
         template.querySelector('input[type="text"]').value = '';
-        template.querySelector('input[type="checkbox"]').checked = false;
         container.appendChild(template);
         
         // 滚动到新添加的元素
@@ -111,16 +105,9 @@ document.addEventListener('DOMContentLoaded', function() {
 .fade-out {
     opacity: 0;
 }
-.form-control::placeholder {
-    color: #6c757d;
-    opacity: 0.65;
-}
 @media (max-width: 768px) {
     .card-body {
         padding: 1rem;
-    }
-    .btn-lg {
-        padding: 0.75rem 1rem;
     }
 }
 </style>

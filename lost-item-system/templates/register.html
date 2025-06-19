@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
             event.stopPropagation();
         }
         form.classList.add('was-validated');
-    }, false);
+    });
 });
 </script>
 {% endblock %}
@@ -70,21 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block extra_css %}
 <style>
 @media (max-width: 768px) {
-    .card {
-        border: none;
-        box-shadow: none;
-    }
-    .card-header {
-        background: transparent;
-        border-bottom: none;
-        padding-top: 2rem;
-    }
-    .card-body {
-        padding: 1.5rem;
-    }
-    .form-control-lg {
-        font-size: 1rem;
-    }
+    .card { border: none; box-shadow: none; }
+    .card-header { background: transparent; border-bottom: none; }
 }
 </style>
 {% endblock %}
