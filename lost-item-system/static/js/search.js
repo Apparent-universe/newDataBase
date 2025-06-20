@@ -80,6 +80,17 @@ class SearchModule {
     }
 }
 
+/**
+ * 显示登录提示
+ */
+function showLoginRequired() {
+    alert('请先登录才能查看地图位置');
+    // 可选：直接跳转到登录页面
+    if (confirm('是否立即前往登录页面？')) {
+        window.location.href = '/auth/login';
+    }
+}
+
 // 初始化搜索模块
 document.addEventListener('DOMContentLoaded', () => {
     new SearchModule();

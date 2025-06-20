@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}{{ record.pickup_location }} - 地图位置{% endblock %}
+
+{% block extra_css %}
+<style>
+#record-map-container {
+    height: 500px;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.record-info-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.back-button {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    #record-map-container {
+        height: 400px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="back-button">
+                <a href="{{ url_for('item.search') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回搜索结果
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt"></i> 物品位置
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="record-map-container">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">地图加载中...</span>
+                                </div>
+                                <p class="mt-2">正在加载地图...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-lg-4">
+            <div class="record-info-card">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">拾获记录详情</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>拾获地点：</strong>
+                            <p class="mt-1">{{ record.pickup_location }}</p>
+                        </div>
+                        
+                        {% if record.formatted_address %}
+                        <div class="mb-3">
+                            <strong>详细地址：</strong>
+                            <p class="mt-1 text-muted">{{ record.formatted_address }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <strong>拾获物品：</strong>
+                            <div class="mt-2">
+                                {% for item in record.items %}
+                                    <span class="badge bg-primary me-1 mb-1">{{ item.item_name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>详细描述：</strong>
+                            <p class="mt-1">{{ record.detailed_description }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>拾获时间：</strong>
+                            <p class="mt-1 text-muted">{{ record.created_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>探员：</strong>
+                            <p class="mt-1">{{ record.agent.username }}</p>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contactModal">
+                                联系探员
+                            </button>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rewardModal">
+                                打赏探员
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 联系探员模态框 -->
+<div class="modal fade" id="contactModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">探员联系方式</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>探员用户名：</strong>
+                    <p class="mt-2">{{ record.agent.username }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>联系方式：</strong>
+                    <p class="mt-2">{{ record.agent.contact }}</p>
+                </div>
+                <div class="mb-3">
+                    <strong>空闲时间：</strong>
+                    <p class="mt-2">{{ record.agent.free_time }}</p>
+                </div>
+                {% if record.agent.has_wx_qrcode() %}
+                    <div class="text-center mt-4">
+                        <strong class="d-block mb-3">微信二维码：</strong>
+                        <img src="{{ url_for('user.get_qrcode', agent_id=record.agent.agent_id) }}?t={{ record.agent.updated_time.timestamp() }}" 
+                             class="img-fluid" 
+                             alt="微信二维码">
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 打赏模态框 -->
+<div class="modal fade" id="rewardModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">打赏探员</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form data-record-id="{{ record.record_id }}" class="reward-form">
+                    <div class="mb-4">
+                        <label for="amount" class="form-label">打赏金额</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="amount" 
+                                   required 
+                                   min="0.01" 
+                                   step="0.01"
+                                   placeholder="请输入打赏金额">
+                        </div>
+                    </div>
+                    {% if record.agent.has_wx_qrcode() %}
+                        <div class="text-center mt-4">
+                            <strong class="d-block mb-3">微信收款码：</strong>
+                            <img src="{{ url_for('user.get_qrcode', agent_id=record.agent.agent_id) }}?t={{ record.agent.updated_time.timestamp() }}" 
+                                 class="img-fluid mb-3" 
+                                 alt="微信收款码">
+                        </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">确认打赏</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 高德地图API -->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key={{ config.AMAP_JS_API_KEY }}&plugin=AMap.Geolocation"></script>
+<script>
+// 记录数据
+const recordData = {
+    record_id: {{ record.record_id }},
+    latitude: {{ record.latitude }},
+    longitude: {{ record.longitude }},
+    pickup_location: "{{ record.pickup_location }}",
+    formatted_address: "{{ record.formatted_address or '' }}",
+    items: [{% for item in record.items %}"{{ item.item_name }}"{% if not loop.last %},{% endif %}{% endfor %}],
+    created_time: "{{ record.created_time.strftime('%Y-%m-%d %H:%M') }}",
+    agent_username: "{{ record.agent.username }}",
+    detailed_description: "{{ record.detailed_description }}"
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof AMap !== 'undefined') {
+        // 创建地图
+        const map = new AMap.Map('record-map-container', {
+            zoom: 16,
+            center: [recordData.longitude, recordData.latitude]
+        });
+
+        // 创建标记
+        const marker = new AMap.Marker({
+            position: [recordData.longitude, recordData.latitude],
+            title: recordData.pickup_location,
+            icon: new AMap.Icon({
+                size: new AMap.Size(36, 36),
+                image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                imageSize: new AMap.Size(36, 36)
+            })
+        });
+
+        map.add(marker);
+
+        // 创建信息窗体
+        const itemsHtml = recordData.items.map(item => 
+            `<span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-right: 4px;">${item}</span>`
+        ).join('');
+
+        const infoContent = `
+            <div style="padding: 10px; max-width: 300px;">
+                <h6 style="margin-bottom: 8px; color: #333;">${recordData.pickup_location}</h6>
+                <div style="margin: 8px 0;">${itemsHtml}</div>
+                <p style="margin: 8px 0; font-size: 13px;">${recordData.detailed_description}</p>
+                <p style="margin: 0; font-size: 12px; color: #666;">拾获时间: ${recordData.created_time}</p>
+                <p style="margin: 0; font-size: 12px; color: #666;">探员: ${recordData.agent_username}</p>
+            </div>
+        `;
+
+        const infoWindow = new AMap.InfoWindow({
+            content: infoContent,
+            offset: new AMap.Pixel(0, -30),
+            autoMove: true
+        });
+
+        // 点击标记显示信息窗体
+        marker.on('click', function() {
+            infoWindow.open(map, marker.getPosition());
+        });
+
+        // 自动显示信息窗体
+        setTimeout(() => {
+            infoWindow.open(map, marker.getPosition());
+        }, 1000);
+
+    } else {
+        console.error('高德地图API加载失败');
+        document.getElementById('record-map-container').innerHTML = 
+            '<div class="d-flex justify-content-center align-items-center h-100"><div class="alert alert-danger">地图加载失败</div></div>';
+    }
+});
+</script>
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

@@ -9,6 +9,7 @@ import pymysql
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# 设置PyMySQL为MySQLdb的替代
 pymysql.install_as_MySQLdb()
 
 db = SQLAlchemy()
@@ -60,9 +61,20 @@ def create_app(config_name=None):
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message = '请先登录'
+    login_manager.login_message_category = 'info'
     
-    # 注册蓝图 - MVC架构
-    from app.routes import main_bp, auth_bp, item_bp, user_bp
+    # 初始化地图服务API密钥和安全密钥
+    from app.services.map_service import MapService
+    MapService.set_api_credentials(
+        app.config['AMAP_WEB_SERVICE_KEY'], 
+        app.config.get('AMAP_SECURITY_CODE')
+    )
+    
+    # 注册蓝图
+    from app.routes.main_routes import main_bp
+    from app.routes.auth_routes import auth_bp
+    from app.routes.item_routes import item_bp
+    from app.routes.user_routes import user_bp
     from app.api.api_routes import api_bp
     
     app.register_blueprint(main_bp)
@@ -71,15 +83,27 @@ def create_app(config_name=None):
     app.register_blueprint(user_bp)
     app.register_blueprint(api_bp)
     
-    # 使用app_context来创建表（替代before_first_request）
+    print("所有蓝图注册完成!")
+    
+    # 用户加载回调
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models import Agent
+        return Agent.query.get(int(user_id))
+    
+    # 创建数据库表
     with app.app_context():
+        from app.models import Agent, FoundRecord, FoundItem, Reward, FoundHistory, ArchivedRecord, ArchivedItem
         try:
             db.create_all()
             print("数据库表检查/创建成功!")
+            
+            # 验证配置
+            config[config_name].validate_config()
             print(f"当前配置环境: {config_name}")
-            print(f"自动归档天数: {app.config.get('AUTO_ARCHIVE_DAYS')}天")
-            print(f"搜索结果限制: {app.config.get('SEARCH_RESULTS_LIMIT')}条")
+            print(f"自动归档天数: {app.config['AUTO_ARCHIVE_DAYS']}天")
+            print(f"搜索结果限制: {app.config['SEARCH_RESULTS_LIMIT']}条")
         except Exception as e:
-            print(f"数据库初始化警告: {e}")
+            print(f"数据库初始化失败: {e}")
         
     return app

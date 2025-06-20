@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from flask_login import login_required, current_user
 from app.services.item_service import ItemService
 from app.services.reward_service import RewardService
+from app.services.map_service import MapService
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -75,3 +76,75 @@ def restore_archived_record(archived_id):
             
     except Exception as e:
         return jsonify({'message': f'恢复失败: {str(e)}'}), 500
+
+# 地图相关API
+@api_bp.route('/map/records', methods=['GET'])
+@login_required
+def get_map_records():
+    """获取地图上的所有记录点"""
+    try:
+        result = ItemService.get_records_with_location()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取地图数据失败: {str(e)}'})
+
+@api_bp.route('/map/geocode', methods=['POST'])
+@login_required
+def geocode_address():
+    """地理编码：将地址转换为坐标"""
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        
+        if not address:
+            return jsonify({'success': False, 'message': '地址不能为空'})
+        
+        result = MapService.geocode_address(address)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'地理编码失败: {str(e)}'})
+
+@api_bp.route('/map/reverse-geocode', methods=['POST'])
+@login_required
+def reverse_geocode():
+    """逆地理编码：将坐标转换为地址"""
+    try:
+        data = request.get_json()
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        
+        if not latitude or not longitude:
+            return jsonify({'success': False, 'message': '坐标不能为空'})
+        
+        # 验证坐标有效性
+        is_valid, message = MapService.validate_coordinates(latitude, longitude)
+        if not is_valid:
+            return jsonify({'success': False, 'message': message})
+        
+        result = MapService.reverse_geocode(latitude, longitude)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'逆地理编码失败: {str(e)}'})
+
+@api_bp.route('/map/nearby', methods=['POST'])
+@login_required
+def get_nearby_records():
+    """获取附近的拾获记录"""
+    try:
+        data = request.get_json()
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        radius = data.get('radius', 10)  # 默认10公里
+        
+        if not latitude or not longitude:
+            return jsonify({'success': False, 'message': '坐标不能为空'})
+        
+        # 验证坐标有效性
+        is_valid, message = MapService.validate_coordinates(latitude, longitude)
+        if not is_valid:
+            return jsonify({'success': False, 'message': message})
+        
+        result = MapService.get_nearby_records(float(latitude), float(longitude), float(radius))
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'搜索附近记录失败: {str(e)}'})

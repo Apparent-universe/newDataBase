@@ -12,9 +12,44 @@
             <div class="card-body">
                 <form method="POST" action="{{ url_for('item.publish') }}" enctype="multipart/form-data">
                     <div class="mb-4">
-                        <label for="pickup_location" class="form-label">拾获地点</label>
-                        <input type="text" class="form-control" id="pickup_location" name="pickup_location" required
-                               placeholder="请输入拾获地点，例如：图书馆一楼">
+                        <label for="pickup_location" class="form-label">拾获地点 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="pickup_location" name="pickup_location" 
+                                   placeholder="请描述拾获地点" required>
+                            <button type="button" class="btn btn-outline-primary" id="select-location-btn">
+                                <i class="fas fa-map-marker-alt"></i> 地图选点
+                            </button>
+                        </div>
+                        <div class="form-text">建议使用地图选点功能获取精确位置</div>
+                        
+                        <!-- 隐藏的地理位置字段 -->
+                        <input type="hidden" id="latitude" name="latitude">
+                        <input type="hidden" id="longitude" name="longitude">
+                        <input type="hidden" id="formatted_address" name="formatted_address">
+                        
+                        <!-- 地图选择区域 -->
+                        <div id="location-selector" class="mt-3" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">选择精确位置</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="location-map" style="height: 400px; width: 100%;"></div>
+                                    <div class="mt-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>选中位置：</strong>
+                                                <span id="selected-address" class="text-muted">点击地图选择位置</span>
+                                            </div>
+                                            <div>
+                                                <button type="button" class="btn btn-secondary me-2" id="cancel-location-btn">取消</button>
+                                                <button type="button" class="btn btn-primary" id="confirm-location-btn" disabled>确认位置</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="mb-4">
@@ -65,6 +100,8 @@
 </div>
 
 {% block extra_js %}
+<!-- 高德地图API -->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key={{ config.AMAP_JS_API_KEY }}&plugin=AMap.Geolocation,AMap.Geocoder"></script>
 <script src="{{ url_for('static', filename='js/publish.js') }}"></script>
 {% endblock %}
 

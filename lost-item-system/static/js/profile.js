@@ -160,6 +160,13 @@ class ProfileModule {
     }
 }
 
+/**
+ * 编辑记录
+ */
+function editRecord(recordId) {
+    window.location.href = `/items/edit/${recordId}`;
+}
+
 // 初始化个人中心模块
 document.addEventListener('DOMContentLoaded', () => {
     const profileModule = new ProfileModule();

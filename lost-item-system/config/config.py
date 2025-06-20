@@ -57,6 +57,17 @@ class Config:
     DB_POOL_RECYCLE = int(os.environ.get('DB_POOL_RECYCLE', '3600'))
     DB_MAX_OVERFLOW = int(os.environ.get('DB_MAX_OVERFLOW', '10'))
     
+    # 高德地图配置 - 支持分离的API密钥
+    AMAP_WEB_SERVICE_KEY = os.environ.get('AMAP_WEB_SERVICE_KEY', '7a17809022b1c1fd130bb0dbc11b8cd5')  # Web服务API密钥（后端用）
+    AMAP_JS_API_KEY = os.environ.get('AMAP_JS_API_KEY', '8eab57b8c12c66104c1776924242f945')  # JS API密钥（前端用）
+    AMAP_SECURITY_CODE = os.environ.get('AMAP_SECURITY_CODE', '90bbadc2211f93cb8c4fb71eb676acfe')  # 安全密钥
+    
+    # 向后兼容 - 如果没有设置分离的密钥，使用通用密钥
+    @property
+    def AMAP_API_KEY(self):
+        """向后兼容的API密钥属性"""
+        return self.AMAP_WEB_SERVICE_KEY
+    
     @classmethod
     def get_auto_archive_timedelta(cls):
         """获取自动归档时间间隔"""

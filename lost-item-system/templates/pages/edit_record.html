@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}编辑记录 - 丢物小助手{% endblock %}
+
+{% block extra_css %}
+<style>
+.item-entry {
+    transition: opacity 0.3s ease;
+}
+
+.item-entry.fade-out {
+    opacity: 0;
+}
+
+#location-selector {
+    display: none;
+}
+
+#location-map {
+    height: 400px;
+    width: 100%;
+    border-radius: 8px;
+}
+
+.map-controls {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    #location-map {
+        height: 300px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h3 class="mb-0">编辑记录</h3>
+                    <small class="text-muted">修改拾获物品信息</small>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('item.update_record', record_id=record.record_id) }}" class="needs-validation" novalidate>
+                        <!-- 拾获地点 -->
+                        <div class="mb-4">
+                            <label for="pickup_location" class="form-label">拾获地点 <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="pickup_location" name="pickup_location" 
+                                       value="{{ record.pickup_location }}" required placeholder="请输入拾获地点">
+                                <button type="button" class="btn btn-outline-primary" id="select-location-btn">
+                                    <i class="fas fa-map-marker-alt"></i> 地图选点
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">请输入拾获地点</div>
+                            
+                            <!-- 隐藏的地理位置字段 -->
+                            <input type="hidden" id="latitude" name="latitude" value="{{ record.latitude or '' }}">
+                            <input type="hidden" id="longitude" name="longitude" value="{{ record.longitude or '' }}">
+                            <input type="hidden" id="formatted_address" name="formatted_address" value="{{ record.formatted_address or '' }}">
+                        </div>
+
+                        <!-- 地图选择器 -->
+                        <div id="location-selector">
+                            <div class="map-controls">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-1">选择位置</h5>
+                                        <small class="text-muted">点击地图标记精确位置</small>
+                                    </div>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-success btn-sm" id="confirm-location-btn" disabled>
+                                            确认位置
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm" id="cancel-location-btn">
+                                            取消
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <strong>选中位置：</strong>
+                                    <span id="selected-address" class="text-muted">点击地图选择位置</span>
+                                </div>
+                            </div>
+                            <div id="location-map"></div>
+                        </div>
+
+                        <!-- 详细描述 -->
+                        <div class="mb-4">
+                            <label for="detailed_description" class="form-label">详细描述 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="detailed_description" name="detailed_description" 
+                                      rows="4" required placeholder="请详细描述拾获物品的外观、特征等信息">{{ record.detailed_description }}</textarea>
+                            <div class="invalid-feedback">请输入详细描述</div>
+                        </div>
+
+                        <!-- 隐藏信息 -->
+                        <div class="mb-4">
+                            <label for="hidden_info" class="form-label">隐藏信息</label>
+                            <textarea class="form-control" id="hidden_info" name="hidden_info" 
+                                      rows="2" placeholder="仅您本人可见的额外信息（可选）">{{ record.hidden_info or '' }}</textarea>
+                            <div class="form-text">此信息仅对您本人可见，可用于验证失主身份</div>
+                        </div>
+
+                        <!-- 拾获物品 -->
+                        <div class="mb-4">
+                            <label class="form-label">拾获物品 <span class="text-danger">*</span></label>
+                            <div id="items-container">
+                                {% for item in record.items %}
+                                <div class="item-entry mb-3">
+                                    <div class="card">
+                                        <div class="card-body p-3">
+                                            <div class="row g-2">
+                                                <div class="col-12">
+                                                    <input type="text" class="form-control" name="items[][name]" 
+                                                           value="{{ item.item_name }}" placeholder="物品名称" required>
+                                                </div>
+                                                <div class="col-12 d-flex justify-content-end mt-2">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+                                                        删除物品
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" class="btn btn-outline-primary" id="add-item">
+                                <i class="fas fa-plus"></i> 添加物品
+                            </button>
+                        </div>
+
+                        <!-- 提交按钮 -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('user.profile') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 高德地图API -->
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key={{ config.AMAP_JS_API_KEY }}&plugin=AMap.Geolocation,AMap.Geocoder"></script>
+<script src="{{ url_for('static', filename='js/publish.js') }}"></script>
+<script>
+// 如果有现有位置，在地图加载后显示
+document.addEventListener('DOMContentLoaded', function() {
+    const latitude = document.getElementById('latitude').value;
+    const longitude = document.getElementById('longitude').value;
+    
+    if (latitude && longitude) {
+        document.getElementById('pickup_location').classList.add('is-valid');
+    }
+});
+</script>
+{% endblock %}

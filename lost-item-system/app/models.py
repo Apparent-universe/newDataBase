@@ -44,6 +44,10 @@ class FoundRecord(db.Model):
     record_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     agent_id = db.Column(db.Integer, db.ForeignKey('agent.agent_id'), nullable=False)
     pickup_location = db.Column(db.String(255), nullable=False)
+    # 新增地理位置字段
+    latitude = db.Column(db.DECIMAL(10, 8), nullable=True)  # 纬度
+    longitude = db.Column(db.DECIMAL(11, 8), nullable=True)  # 经度
+    formatted_address = db.Column(db.String(500), nullable=True)  # 格式化地址
     detailed_description = db.Column(db.Text)
     hidden_info = db.Column(db.Text)
     created_time = db.Column(db.DateTime, default=datetime.now)
@@ -52,6 +56,21 @@ class FoundRecord(db.Model):
     # 修复级联删除配置
     items = db.relationship('FoundItem', backref='record', lazy=True, cascade='all, delete-orphan')
     rewards = db.relationship('Reward', backref='record', lazy=True, cascade='all, delete-orphan')
+
+    def has_location(self):
+        """检查是否有地理坐标"""
+        return self.latitude is not None and self.longitude is not None
+    
+    def get_location_dict(self):
+        """获取位置信息字典"""
+        if self.has_location():
+            return {
+                'latitude': float(self.latitude),
+                'longitude': float(self.longitude),
+                'formatted_address': self.formatted_address,
+                'pickup_location': self.pickup_location
+            }
+        return None
 
 class FoundItem(db.Model):
     __tablename__ = 'found_item'

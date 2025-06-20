@@ -2,20 +2,25 @@ from app import db
 from app.models import FoundRecord, FoundItem, ArchivedRecord, ArchivedItem, Agent, check_and_auto_archive
 from sqlalchemy.orm import selectinload
 from flask import current_app
+from datetime import datetime
 
 class ItemService:
     """物品管理服务"""
     
     @staticmethod
-    def publish_item(agent_id, pickup_location, detailed_description, hidden_info, item_names):
-        """发布拾获物品"""
+    def publish_item(agent_id, pickup_location, detailed_description, hidden_info, item_names, 
+                    latitude=None, longitude=None, formatted_address=None):
+        """发布拾获物品 - 增加地理位置支持"""
         try:
             # 创建记录
             record = FoundRecord(
                 agent_id=agent_id,
                 pickup_location=pickup_location,
                 detailed_description=detailed_description,
-                hidden_info=hidden_info
+                hidden_info=hidden_info,
+                latitude=latitude,
+                longitude=longitude,
+                formatted_address=formatted_address
             )
             
             db.session.add(record)
@@ -229,3 +234,87 @@ class ItemService:
         except Exception as e:
             db.session.rollback()
             return {'success': False, 'message': f'恢复失败: {str(e)}'}
+    
+    @staticmethod
+    def get_records_with_location():
+        """获取所有有地理位置的记录"""
+        try:
+            # 执行自动归档检查
+            check_and_auto_archive()
+            
+            from sqlalchemy.orm import selectinload
+            
+            records = FoundRecord.query.join(Agent).filter(
+                Agent.status == 1,
+                FoundRecord.latitude.isnot(None),
+                FoundRecord.longitude.isnot(None)
+            ).options(
+                selectinload(FoundRecord.items),
+                selectinload(FoundRecord.agent)
+            ).order_by(FoundRecord.created_time.desc()).all()
+            
+            # 转换为地图需要的格式
+            map_data = []
+            for record in records:
+                location_info = record.get_location_dict()
+                if location_info:
+                    map_data.append({
+                        'record_id': record.record_id,
+                        'latitude': location_info['latitude'],
+                        'longitude': location_info['longitude'],
+                        'pickup_location': record.pickup_location,
+                        'formatted_address': record.formatted_address,
+                        'items': [item.item_name for item in record.items],
+                        'created_time': record.created_time.strftime('%Y-%m-%d %H:%M'),
+                        'agent_username': record.agent.username,
+                        'detailed_description': record.detailed_description[:100] + '...' if len(record.detailed_description) > 100 else record.detailed_description
+                    })
+            
+            return {'success': True, 'records': map_data}
+            
+        except Exception as e:
+            return {'success': False, 'records': [], 'message': f'获取地图数据失败: {str(e)}'}
+    
+    @staticmethod
+    def update_record(record_id, agent_id, pickup_location, detailed_description, hidden_info, 
+                     item_names, latitude=None, longitude=None, formatted_address=None):
+        """更新记录信息"""
+        try:
+            from app.models import FoundRecord, FoundItem
+            
+            # 获取记录并验证权限
+            record = FoundRecord.query.filter_by(
+                record_id=record_id,
+                agent_id=agent_id
+            ).first()
+            
+            if not record:
+                return {'success': False, 'message': '记录不存在或无权限编辑'}
+            
+            # 更新记录信息
+            record.pickup_location = pickup_location
+            record.detailed_description = detailed_description
+            record.hidden_info = hidden_info
+            record.latitude = latitude
+            record.longitude = longitude
+            record.formatted_address = formatted_address
+            record.updated_time = datetime.now()
+            
+            # 删除旧的物品记录
+            FoundItem.query.filter_by(record_id=record_id).delete()
+            
+            # 添加新的物品记录
+            for name in item_names:
+                if name.strip():
+                    item = FoundItem(
+                        record_id=record_id,
+                        item_name=name.strip()
+                    )
+                    db.session.add(item)
+            
+            db.session.commit()
+            return {'success': True, 'message': '记录更新成功'}
+            
+        except Exception as e:
+            db.session.rollback()
+            return {'success': False, 'message': f'更新失败: {str(e)}'}
