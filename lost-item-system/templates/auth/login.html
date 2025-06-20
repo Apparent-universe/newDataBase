@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - 丢物小助手{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h3 class="text-center mb-0 fs-4">登录</h3>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.login') }}" class="needs-validation" novalidate>
+                    <div class="mb-4">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control form-control-lg" id="username" name="username" required
+                               placeholder="请输入用户名">
+                        <div class="invalid-feedback">
+                            请输入用户名
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control form-control-lg" id="password" name="password" required
+                               placeholder="请输入密码">
+                        <div class="invalid-feedback">
+                            请输入密码
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">登录</button>
+                    </div>
+                </form>
+                <div class="text-center mt-4">
+                    <p class="mb-0">还没有账号？ <a href="{{ url_for('auth.register') }}" class="text-primary">立即注册</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 表单验证
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@media (max-width: 768px) {
+    .card { border: none; box-shadow: none; }
+    .card-header { background: transparent; border-bottom: none; }
+}
+</style>
+{% endblock %}
+
+{% endblock %}

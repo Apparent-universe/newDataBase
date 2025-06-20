@@ -10,12 +10,12 @@
     <p>您是否捡到了他人的物品？或者正在寻找丢失的物品？</p>
     <div class="mt-4 d-grid gap-2 d-md-block">
         {% if current_user.is_authenticated %}
-            <a class="btn btn-primary btn-lg mb-2 mb-md-0" href="{{ url_for('main.publish') }}" role="button">发布拾获物品</a>
+            <a class="btn btn-primary btn-lg mb-2 mb-md-0" href="{{ url_for('item.publish') }}" role="button">发布拾获物品</a>
         {% else %}
-            <a class="btn btn-primary btn-lg mb-2 mb-md-0" href="{{ url_for('main.login') }}" role="button">登录发布物品</a>
-            <a class="btn btn-outline-primary btn-lg mb-2 mb-md-0" href="{{ url_for('main.register') }}" role="button">注册成为探员</a>
+            <a class="btn btn-primary btn-lg mb-2 mb-md-0" href="{{ url_for('auth.login') }}" role="button">登录发布物品</a>
+            <a class="btn btn-outline-primary btn-lg mb-2 mb-md-0" href="{{ url_for('auth.register') }}" role="button">注册成为探员</a>
         {% endif %}
-        <a class="btn btn-success btn-lg" href="{{ url_for('main.search') }}" role="button">搜索丢失物品</a>
+        <a class="btn btn-success btn-lg" href="{{ url_for('item.search') }}" role="button">搜索丢失物品</a>
     </div>
 </div>
 
@@ -65,7 +65,7 @@
                     <p class="card-text"><small class="text-muted">拾获时间: {{ record.created_time }}</small></p>
                 </div>
                 <div class="card-footer text-center text-md-start">
-                    <a href="{{ url_for('main.search') }}?record_id={{ record.record_id }}" class="btn btn-primary w-100 w-md-auto">查看详情</a>
+                    <a href="{{ url_for('item.search') }}?record_id={{ record.record_id }}" class="btn btn-primary w-100 w-md-auto">查看详情</a>
                 </div>
             </div>
         </div>

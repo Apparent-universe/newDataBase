@@ -45,12 +45,18 @@ def create_app():
     # 初始化扩展
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'main.login'
+    login_manager.login_view = 'auth.login'
     login_manager.login_message = '请先登录'
     
-    # 延迟导入和注册蓝图
-    from app.routes import main
-    app.register_blueprint(main)
+    # 注册蓝图 - MVC架构
+    from app.routes import main_bp, auth_bp, item_bp, user_bp
+    from app.api.api_routes import api_bp
+    
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(item_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(api_bp)
     
     # 使用app_context来创建表（替代before_first_request）
     with app.app_context():

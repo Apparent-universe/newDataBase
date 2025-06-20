@@ -22,31 +22,31 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.search') }}">搜索物品</a>
+                        <a class="nav-link" href="{{ url_for('item.search') }}">搜索物品</a>
                     </li>
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.publish') }}">发布物品</a>
+                            <a class="nav-link" href="{{ url_for('item.publish') }}">发布物品</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.profile') }}">个人中心</a>
+                            <a class="nav-link" href="{{ url_for('user.profile') }}">个人中心</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.archived') }}">归档记录</a>
+                            <a class="nav-link" href="{{ url_for('item.archived') }}">归档记录</a>
                         </li>
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.logout') }}">退出</a>
+                            <a class="nav-link" href="{{ url_for('auth.logout') }}">退出</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.login') }}">登录</a>
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">登录</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.register') }}">注册</a>
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">注册</a>
                         </li>
                     {% endif %}
                 </ul>

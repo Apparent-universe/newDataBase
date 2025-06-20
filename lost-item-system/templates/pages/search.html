@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}搜索物品 - 丢物小助手{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('item.search') }}" class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <input type="text" class="form-control" name="keyword" placeholder="搜索物品名称..." value="{{ request.args.get('keyword', '') }}">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <input type="text" class="form-control" name="location" placeholder="搜索地点..." value="{{ request.args.get('location', '') }}">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">搜索</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if records %}
+        {% for record in records %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title text-break">拾获地点: {{ record.pickup_location }}</h5>
+                    <div class="mt-3">
+                        <strong>拾获物品:</strong>
+                        <div class="mt-2">
+                            {% for item in record.items %}
+                                <span class="badge bg-primary me-2 mb-2">{{ item.item_name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="card-text text-break mt-3">{{ record.detailed_description }}</p>
+                    {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.agent_id == record.agent_id) %}
+                        {% if record.hidden_info %}
+                            <div class="alert alert-info mt-3">
+                                <strong>隐藏信息（仅探员可见）：</strong><br>
+                                {{ record.hidden_info }}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    <p class="card-text"><small class="text-muted">拾获时间: {{ record.created_time }}</small></p>
+                </div>
+                <div class="card-footer d-grid gap-2 d-md-block">
+                    <button type="button" class="btn btn-primary mb-2 mb-md-0 me-md-2" data-bs-toggle="modal" data-bs-target="#contactModal{{ record.record_id }}">
+                        联系探员
+                    </button>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rewardModal{{ record.record_id }}">
+                        打赏探员
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 联系探员模态框 -->
+        <div class="modal fade" id="contactModal{{ record.record_id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">探员联系方式</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <strong>探员用户名：</strong>
+                            <p class="text-break mt-2">{{ record.agent.username }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong>联系方式：</strong>
+                            <p class="text-break mt-2">{{ record.agent.contact }}</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong>空闲时间：</strong>
+                            <p class="text-break mt-2">{{ record.agent.free_time }}</p>
+                        </div>
+                        {% if record.agent.wx_qrcode %}
+                            <div class="text-center mt-4">
+                                <strong class="d-block mb-3">微信二维码：</strong>
+                                <img src="{{ url_for('static', filename='uploads/' + record.agent.wx_qrcode) }}" 
+                                     class="img-fluid" 
+                                     alt="微信二维码"
+                                     loading="lazy">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 打赏模态框 -->
+        <div class="modal fade" id="rewardModal{{ record.record_id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">打赏探员</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form data-record-id="{{ record.record_id }}" class="reward-form">
+                            <div class="mb-4">
+                                <label for="amount{{ record.record_id }}" class="form-label">打赏金额</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="amount{{ record.record_id }}" 
+                                           required 
+                                           min="0.01" 
+                                           step="0.01"
+                                           placeholder="请输入打赏金额">
+                                </div>
+                            </div>
+                            {% if record.agent.wx_qrcode %}
+                                <div class="text-center mt-4">
+                                    <strong class="d-block mb-3">微信收款码：</strong>
+                                    <img src="{{ url_for('static', filename='uploads/' + record.agent.wx_qrcode) }}" 
+                                         class="img-fluid mb-3" 
+                                         alt="微信收款码"
+                                         loading="lazy">
+                                </div>
+                            {% endif %}
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">确认打赏</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">暂无符合条件的物品记录</div>
+        </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}
+{% endblock %}
