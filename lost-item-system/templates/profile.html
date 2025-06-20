@@ -95,9 +95,11 @@
                     <span>收到打赏</span>
                     <span class="badge bg-success">{{ total_rewards }}元</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <span>已归档记录</span>
-                    <span class="badge bg-secondary">{{ archived_count }}</span>
+                    <a href="{{ url_for('main.archived') }}" class="badge bg-secondary text-decoration-none">
+                        {{ archived_count }} 条记录
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -38,8 +38,9 @@ class FoundRecord(db.Model):
     created_time = db.Column(db.DateTime, default=datetime.now)
     updated_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
-    items = db.relationship('FoundItem', backref='record', lazy=True)
-    rewards = db.relationship('Reward', backref='record', lazy=True)
+    # 修复级联删除配置
+    items = db.relationship('FoundItem', backref='record', lazy=True, cascade='all, delete-orphan')
+    rewards = db.relationship('Reward', backref='record', lazy=True, cascade='all, delete-orphan')
 
 class FoundItem(db.Model):
     __tablename__ = 'found_item'
@@ -64,3 +65,77 @@ class FoundHistory(db.Model):
     hidden_info = db.Column(db.Text)
     created_time = db.Column(db.DateTime)
     confirm_time = db.Column(db.DateTime, default=datetime.now)
+
+# 新增归档表
+class ArchivedRecord(db.Model):
+    __tablename__ = 'archived_record'
+    archived_record_id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # 匹配现有主键名
+    original_record_id = db.Column(db.Integer, nullable=False)  # 原记录ID
+    agent_id = db.Column(db.Integer, db.ForeignKey('agent.agent_id'), nullable=False)
+    pickup_location = db.Column(db.String(255), nullable=False)
+    detailed_description = db.Column(db.Text)
+    hidden_info = db.Column(db.Text)
+    created_time = db.Column(db.DateTime, nullable=False)  # 匹配现有字段名
+    archived_time = db.Column(db.DateTime, default=datetime.now)  # 归档时间
+    archive_reason = db.Column(db.Enum('USER_ARCHIVE', 'USER_DELETE', 'AUTO_ARCHIVE'), nullable=True)
+    archived_by_agent_id = db.Column(db.Integer, db.ForeignKey('agent.agent_id'), nullable=True)
+    
+    # 关联关系
+    agent = db.relationship('Agent', foreign_keys=[agent_id], backref='archived_records')
+    archived_by = db.relationship('Agent', foreign_keys=[archived_by_agent_id])
+    items = db.relationship('ArchivedItem', backref='record', lazy=True, cascade='all, delete-orphan')
+    
+class ArchivedItem(db.Model):
+    __tablename__ = 'archived_item'
+    archived_item_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    archived_record_id = db.Column(db.Integer, db.ForeignKey('archived_record.archived_record_id'), nullable=False)
+    original_item_id = db.Column(db.Integer, nullable=True)  # 原物品ID，设为可选
+    item_name = db.Column(db.String(100), nullable=False)
+
+# 添加自动归档检查函数
+def check_and_auto_archive():
+    """检查并自动归档超过两周的记录"""
+    try:
+        two_weeks_ago = datetime.now() - timedelta(days=14)
+        old_records = FoundRecord.query.filter(
+            FoundRecord.created_time < two_weeks_ago
+        ).all()
+        
+        archived_count = 0
+        for record in old_records:
+            # 创建归档记录
+            archived_record = ArchivedRecord(
+                original_record_id=record.record_id,
+                agent_id=record.agent_id,
+                pickup_location=record.pickup_location,
+                detailed_description=record.detailed_description,
+                hidden_info=record.hidden_info,
+                original_created_time=record.created_time,
+                archive_reason='AUTO_ARCHIVE',
+                archived_by_agent_id=None  # 自动归档无操作用户
+            )
+            db.session.add(archived_record)
+            db.session.flush()
+            
+            # 转移物品
+            for item in record.items:
+                archived_item = ArchivedItem(
+                    archived_record_id=archived_record.archived_id,
+                    original_item_id=item.item_id,
+                    item_name=item.item_name
+                )
+                db.session.add(archived_item)
+            
+            # 删除原记录（级联删除物品和打赏记录）
+            db.session.delete(record)
+            archived_count += 1
+        
+        if archived_count > 0:
+            db.session.commit()
+            print(f"自动归档了 {archived_count} 条超期记录")
+        
+        return archived_count
+    except Exception as e:
+        db.session.rollback()
+        print(f"自动归档失败: {e}")
+        return 0

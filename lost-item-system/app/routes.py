@@ -2,15 +2,18 @@ from flask import Blueprint, request, jsonify, current_app, render_template, red
 from werkzeug.utils import secure_filename
 import os
 from app import db
-from app.models import Agent, FoundRecord, FoundItem, Reward, FoundHistory
+from app.models import Agent, FoundRecord, FoundItem, Reward, FoundHistory, ArchivedRecord, ArchivedItem, check_and_auto_archive
 from flask_login import login_user, logout_user, login_required, current_user
-from sqlalchemy.orm import selectinload
 
 main = Blueprint('main', __name__)
 
 # Web路由
 @main.route('/')
 def index():
+    # 执行自动归档检查
+    check_and_auto_archive()
+    
+    from sqlalchemy.orm import selectinload
     latest_items = FoundRecord.query.join(Agent).filter(
         Agent.status == 1
     ).options(
@@ -107,10 +110,14 @@ def publish():
 
 @main.route('/search')
 def search():
+    # 执行自动归档检查
+    check_and_auto_archive()
+    
     keyword = request.args.get('keyword', '')
     location = request.args.get('location', '')
     record_id = request.args.get('record_id')
     
+    from sqlalchemy.orm import selectinload
     query = FoundRecord.query.join(Agent).filter(Agent.status == 1)
     
     if record_id:
@@ -134,7 +141,12 @@ def search():
 def profile():
     my_records = FoundRecord.query.filter_by(agent_id=current_user.agent_id).order_by(FoundRecord.created_time.desc()).all()
     records_count = len(my_records)
-    archived_count = FoundHistory.query.filter_by(agent_id=current_user.agent_id).count()
+    
+    # 获取归档记录数量 - 只统计归档的记录，不包括删除的记录
+    archived_count = ArchivedRecord.query.filter(
+        ArchivedRecord.agent_id == current_user.agent_id,
+        ArchivedRecord.archive_reason != 'USER_DELETE'
+    ).count()
     
     total_rewards = db.session.query(db.func.sum(Reward.reward_amount)).join(
         FoundRecord, Reward.record_id == FoundRecord.record_id
@@ -162,6 +174,22 @@ def profile():
                          archived_count=archived_count,
                          total_rewards=total_rewards)
 
+# 新增归档页面路由
+@main.route('/archived')
+@login_required
+def archived():
+    from sqlalchemy.orm import selectinload
+    # 只显示归档的记录，不显示删除的记录
+    archived_records = ArchivedRecord.query.filter(
+        ArchivedRecord.agent_id == current_user.agent_id,
+        ArchivedRecord.archive_reason != 'USER_DELETE'  # 排除已删除的记录
+    ).options(
+        selectinload(ArchivedRecord.items),
+        selectinload(ArchivedRecord.archived_by)
+    ).order_by(ArchivedRecord.archived_time.desc()).all()
+    
+    return render_template('archived.html', archived_records=archived_records)
+
 # AJAX API接口
 @main.route('/api/found-items/<int:record_id>/reward', methods=['POST'])
 def api_create_reward(record_id):
@@ -177,32 +205,143 @@ def api_create_reward(record_id):
 @main.route('/api/found-items/<int:record_id>/archive', methods=['POST'])
 @login_required
 def api_archive_record(record_id):
-    record = FoundRecord.query.get_or_404(record_id)
-    
-    history = FoundHistory(
-        origin_record_id=record.record_id,
-        agent_id=record.agent_id,
-        pickup_location=record.pickup_location,
-        detailed_description=record.detailed_description,
-        hidden_info=record.hidden_info,
-        created_time=record.created_time
-    )
-    
-    db.session.add(history)
-    db.session.delete(record)
-    db.session.commit()
-    
-    return jsonify({'message': '记录已归档'})
+    try:
+        record = FoundRecord.query.get_or_404(record_id)
+        
+        # 检查权限
+        if current_user.agent_id != record.agent_id and current_user.role != 'admin':
+            return jsonify({'message': '权限不足'}), 403
+        
+        # 先获取所有关联的物品数据（在删除前）
+        items_data = []
+        for item in record.items:
+            items_data.append({
+                'item_id': item.item_id,
+                'item_name': item.item_name
+            })
+        
+        # 创建归档记录
+        archived_record = ArchivedRecord(
+            original_record_id=record.record_id,
+            agent_id=record.agent_id,
+            pickup_location=record.pickup_location,
+            detailed_description=record.detailed_description,
+            hidden_info=record.hidden_info,
+            created_time=record.created_time,
+            archive_reason='USER_ARCHIVE',
+            archived_by_agent_id=current_user.agent_id
+        )
+        db.session.add(archived_record)
+        db.session.flush()
+        
+        # 转移物品数据到归档表
+        for item_data in items_data:
+            archived_item = ArchivedItem(
+                archived_record_id=archived_record.archived_record_id,
+                original_item_id=item_data['item_id'],
+                item_name=item_data['item_name']
+            )
+            db.session.add(archived_item)
+        
+        # 删除原记录（SQLAlchemy会自动级联删除关联的items和rewards）
+        db.session.delete(record)
+        db.session.commit()
+        
+        return jsonify({'message': '记录已归档'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'归档失败: {str(e)}'}), 500
 
 @main.route('/api/found-items/<int:record_id>', methods=['DELETE'])
 @login_required
 def api_delete_record(record_id):
-    record = FoundRecord.query.get_or_404(record_id)
-    
-    if current_user.agent_id != record.agent_id and current_user.role != 'admin':
-        return jsonify({'message': '权限不足'}), 403
-    
-    db.session.delete(record)
-    db.session.commit()
-    
-    return jsonify({'message': '记录已删除'})
+    try:
+        record = FoundRecord.query.get_or_404(record_id)
+        
+        # 检查权限
+        if current_user.agent_id != record.agent_id and current_user.role != 'admin':
+            return jsonify({'message': '权限不足'}), 403
+        
+        # 先获取所有关联的物品数据（在删除前）
+        items_data = []
+        for item in record.items:
+            items_data.append({
+                'item_id': item.item_id,
+                'item_name': item.item_name
+            })
+        
+        # 创建归档记录（标记为删除）
+        archived_record = ArchivedRecord(
+            original_record_id=record.record_id,
+            agent_id=record.agent_id,
+            pickup_location=record.pickup_location,
+            detailed_description=record.detailed_description,
+            hidden_info=record.hidden_info,
+            created_time=record.created_time,
+            archive_reason='USER_DELETE',
+            archived_by_agent_id=current_user.agent_id
+        )
+        db.session.add(archived_record)
+        db.session.flush()
+        
+        # 转移物品数据到归档表
+        for item_data in items_data:
+            archived_item = ArchivedItem(
+                archived_record_id=archived_record.archived_record_id,
+                original_item_id=item_data['item_id'],
+                item_name=item_data['item_name']
+            )
+            db.session.add(archived_item)
+        
+        # 删除原记录（SQLAlchemy会自动级联删除关联的items和rewards）
+        db.session.delete(record)
+        db.session.commit()
+        
+        return jsonify({'message': '记录已删除'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'删除失败: {str(e)}'}), 500
+
+# 恢复归档记录的API
+@main.route('/api/archived-items/<int:archived_id>/restore', methods=['POST'])
+@login_required
+def api_restore_archived_record(archived_id):
+    try:
+        # 使用正确的主键名查找记录
+        archived_record = ArchivedRecord.query.filter_by(archived_record_id=archived_id).first_or_404()
+        
+        # 检查权限
+        if current_user.agent_id != archived_record.agent_id and current_user.role != 'admin':
+            return jsonify({'message': '权限不足'}), 403
+        
+        # 检查是否为已删除的记录，不允许恢复
+        if archived_record.archive_reason == 'USER_DELETE':
+            return jsonify({'message': '已删除的记录无法恢复'}), 403
+        
+        # 创建新的活跃记录
+        new_record = FoundRecord(
+            agent_id=archived_record.agent_id,
+            pickup_location=archived_record.pickup_location,
+            detailed_description=archived_record.detailed_description,
+            hidden_info=archived_record.hidden_info,
+            created_time=archived_record.created_time
+        )
+        db.session.add(new_record)
+        db.session.flush()
+        
+        # 恢复物品
+        for item in archived_record.items:
+            new_item = FoundItem(
+                record_id=new_record.record_id,
+                item_name=item.item_name
+            )
+            db.session.add(new_item)
+        
+        # 删除归档记录
+        db.session.delete(archived_record)
+        db.session.commit()
+        
+        return jsonify({'message': '记录已恢复'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'恢复失败: {str(e)}'}), 500
