@@ -70,6 +70,13 @@ def create_app(config_name=None):
         app.config.get('AMAP_SECURITY_CODE')
     )
     
+    # 安全的日志记录
+    try:
+        print(f"高德地图API密钥已设置: {app.config['AMAP_WEB_SERVICE_KEY'][:10]}...")
+        print(f"高德地图JS API密钥: {app.config['AMAP_JS_API_KEY'][:10]}...")
+    except Exception as e:
+        print(f"API密钥显示失败: {e}")
+    
     # 注册蓝图
     from app.routes.main_routes import main_bp
     from app.routes.auth_routes import auth_bp

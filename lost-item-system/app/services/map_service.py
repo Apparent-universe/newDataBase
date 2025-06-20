@@ -4,7 +4,6 @@
 地图服务 - 处理高德地图相关的业务逻辑
 """
 import requests
-from flask import current_app
 import json
 import math
 
@@ -12,7 +11,8 @@ class MapService:
     """地图服务类"""
     
     # 高德地图API配置
-    AMAP_API_KEY = "your_amap_api_key_here"  # 需要替换为实际的API Key
+    AMAP_API_KEY = None
+    AMAP_SECURITY_CODE = None
     GEOCODING_URL = "https://restapi.amap.com/v3/geocode/geo"
     REVERSE_GEOCODING_URL = "https://restapi.amap.com/v3/geocode/regeo"
     
@@ -31,6 +31,12 @@ class MapService:
     @staticmethod
     def geocode_address(address):
         """地理编码：将地址转换为坐标"""
+        if not MapService.AMAP_API_KEY:
+            return {
+                'success': False,
+                'message': '地图API密钥未配置'
+            }
+        
         try:
             params = {
                 'key': MapService.AMAP_API_KEY,
@@ -69,6 +75,12 @@ class MapService:
     @staticmethod
     def reverse_geocode(latitude, longitude):
         """逆地理编码：将坐标转换为地址"""
+        if not MapService.AMAP_API_KEY:
+            return {
+                'success': False,
+                'message': '地图API密钥未配置'
+            }
+        
         try:
             params = {
                 'key': MapService.AMAP_API_KEY,

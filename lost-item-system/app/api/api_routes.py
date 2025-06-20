@@ -89,7 +89,6 @@ def get_map_records():
         return jsonify({'success': False, 'message': f'获取地图数据失败: {str(e)}'})
 
 @api_bp.route('/map/geocode', methods=['POST'])
-@login_required
 def geocode_address():
     """地理编码：将地址转换为坐标"""
     try:
@@ -105,9 +104,8 @@ def geocode_address():
         return jsonify({'success': False, 'message': f'地理编码失败: {str(e)}'})
 
 @api_bp.route('/map/reverse-geocode', methods=['POST'])
-@login_required
 def reverse_geocode():
-    """逆地理编码：将坐标转换为地址"""
+    """逆地理编码：将坐标转换为地址 - 发布页面需要使用，不需要登录"""
     try:
         data = request.get_json()
         latitude = data.get('latitude')
