@@ -1,4 +1,5 @@
 from datetime import datetime
+from flask import current_app
 
 class DateUtils:
     """日期时间工具类"""
@@ -24,10 +25,12 @@ class ValidationUtils:
     def validate_file(file, allowed_extensions=None, max_size=None):
         """验证上传文件"""
         if allowed_extensions is None:
-            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+            # 使用配置文件中的允许扩展名
+            allowed_extensions = current_app.config.get('ALLOWED_IMAGE_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
         
         if max_size is None:
-            max_size = 2 * 1024 * 1024  # 2MB
+            # 使用配置文件中的最大文件大小
+            max_size = current_app.config.get('MAX_IMAGE_SIZE', 2 * 1024 * 1024)
         
         if not file or not file.filename:
             return {'valid': False, 'message': '请选择文件'}
@@ -37,9 +40,51 @@ class ValidationUtils:
         if file_ext not in allowed_extensions:
             return {'valid': False, 'message': f'文件格式不支持，支持的格式：{", ".join(allowed_extensions)}'}
         
-        # 检查文件大小（这里只是示例，实际可能需要读取文件内容）
-        # if hasattr(file, 'content_length') and file.content_length > max_size:
-        #     return {'valid': False, 'message': f'文件大小不能超过{max_size // (1024*1024)}MB'}
+        return {'valid': True}
+    
+    @staticmethod
+    def validate_text_length(text, field_name, max_length_config_key):
+        """验证文本长度"""
+        if not text:
+            return {'valid': True}
+        
+        max_length = current_app.config.get(max_length_config_key, 1000)
+        if len(text) > max_length:
+            return {'valid': False, 'message': f'{field_name}不能超过{max_length}个字符'}
+        
+        return {'valid': True}
+    
+    @staticmethod
+    def validate_username(username):
+        """验证用户名"""
+        if not username:
+            return {'valid': False, 'message': '用户名不能为空'}
+        
+        min_length = current_app.config.get('USERNAME_MIN_LENGTH', 3)
+        max_length = current_app.config.get('USERNAME_MAX_LENGTH', 20)
+        
+        if len(username) < min_length:
+            return {'valid': False, 'message': f'用户名不能少于{min_length}个字符'}
+        
+        if len(username) > max_length:
+            return {'valid': False, 'message': f'用户名不能超过{max_length}个字符'}
+        
+        return {'valid': True}
+    
+    @staticmethod
+    def validate_reward_amount(amount):
+        """验证打赏金额"""
+        if amount is None:
+            return {'valid': False, 'message': '打赏金额不能为空'}
+        
+        min_amount = current_app.config.get('MIN_REWARD_AMOUNT', 0.01)
+        max_amount = current_app.config.get('MAX_REWARD_AMOUNT', 10000.00)
+        
+        if amount < min_amount:
+            return {'valid': False, 'message': f'打赏金额不能少于{min_amount}元'}
+        
+        if amount > max_amount:
+            return {'valid': False, 'message': f'打赏金额不能超过{max_amount}元'}
         
         return {'valid': True}
 

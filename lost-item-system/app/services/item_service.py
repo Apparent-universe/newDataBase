@@ -1,6 +1,7 @@
 from app import db
 from app.models import FoundRecord, FoundItem, ArchivedRecord, ArchivedItem, Agent, check_and_auto_archive
 from sqlalchemy.orm import selectinload
+from flask import current_app
 
 class ItemService:
     """物品管理服务"""
@@ -53,11 +54,14 @@ class ItemService:
                 if location:
                     query = query.filter(FoundRecord.pickup_location.ilike(f'%{location}%'))
             
+            # 使用配置文件中的搜索结果限制，而不是硬编码的20
+            search_limit = current_app.config.get('SEARCH_RESULTS_LIMIT', 20)
+            
             # 优化查询：预加载关联数据
             records = query.options(
                 selectinload(FoundRecord.items),
                 selectinload(FoundRecord.agent)
-            ).order_by(FoundRecord.created_time.desc()).limit(20).all()
+            ).order_by(FoundRecord.created_time.desc()).limit(search_limit).all()
             
             return {'success': True, 'records': records}
             

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from flask import current_app
 
 class Agent(UserMixin, db.Model):
     __tablename__ = 'agent'
@@ -94,11 +95,14 @@ class ArchivedItem(db.Model):
 
 # 添加自动归档检查函数
 def check_and_auto_archive():
-    """检查并自动归档超过两周的记录"""
+    """检查并自动归档超过配置时间的记录"""
     try:
-        two_weeks_ago = datetime.now() - timedelta(days=14)
+        # 使用配置文件中的归档时间，而不是硬编码的14天
+        archive_timedelta = current_app.config.get('AUTO_ARCHIVE_DAYS', 14)
+        cutoff_time = datetime.now() - timedelta(days=archive_timedelta)
+        
         old_records = FoundRecord.query.filter(
-            FoundRecord.created_time < two_weeks_ago
+            FoundRecord.created_time < cutoff_time
         ).all()
         
         archived_count = 0
@@ -110,7 +114,7 @@ def check_and_auto_archive():
                 pickup_location=record.pickup_location,
                 detailed_description=record.detailed_description,
                 hidden_info=record.hidden_info,
-                original_created_time=record.created_time,
+                created_time=record.created_time,
                 archive_reason='AUTO_ARCHIVE',
                 archived_by_agent_id=None  # 自动归档无操作用户
             )
@@ -120,7 +124,7 @@ def check_and_auto_archive():
             # 转移物品
             for item in record.items:
                 archived_item = ArchivedItem(
-                    archived_record_id=archived_record.archived_id,
+                    archived_record_id=archived_record.archived_record_id,
                     original_item_id=item.item_id,
                     item_name=item.item_name
                 )
