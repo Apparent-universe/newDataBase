@@ -12,7 +12,8 @@ class Agent(UserMixin, db.Model):
     contact = db.Column(db.String(100), nullable=False)  # 保持联系方式为必填
     free_time = db.Column(db.String(100))  # 改为可选
     personal_info = db.Column(db.Text)      # 改为可选
-    wx_qrcode = db.Column(db.String(255))   # 改为可选
+    wx_qrcode = db.Column(db.LargeBinary)   # 只保留图片数据
+    wx_qrcode_mimetype = db.Column(db.String(100))   # 只保留MIME类型，用于正确显示
     role = db.Column(db.Enum('agent', 'admin'), default='agent')
     status = db.Column(db.Integer, default=1)
     created_time = db.Column(db.DateTime, default=datetime.now)
@@ -28,6 +29,15 @@ class Agent(UserMixin, db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def set_wx_qrcode(self, file_data, mimetype=None):
+        """设置微信二维码数据 - 简化版本"""
+        self.wx_qrcode = file_data
+        self.wx_qrcode_mimetype = mimetype
+    
+    def has_wx_qrcode(self):
+        """检查是否有微信二维码"""
+        return self.wx_qrcode is not None and len(self.wx_qrcode) > 0
 
 class FoundRecord(db.Model):
     __tablename__ = 'found_record'

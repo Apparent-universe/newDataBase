@@ -40,6 +40,8 @@ class ValidationUtils:
         if file_ext not in allowed_extensions:
             return {'valid': False, 'message': f'文件格式不支持，支持的格式：{", ".join(allowed_extensions)}'}
         
+        # 重要：验证完成后重置文件指针到开头
+        file.seek(0)
         return {'valid': True}
     
     @staticmethod

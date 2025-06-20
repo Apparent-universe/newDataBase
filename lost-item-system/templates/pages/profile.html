@@ -37,11 +37,25 @@
                     
                     <div class="mb-4">
                         <label for="wx_qrcode" class="form-label">微信收款码</label>
-                        {% if current_user.wx_qrcode %}
-                            <div class="mb-3 text-center">
-                                <img src="{{ url_for('static', filename='uploads/' + current_user.wx_qrcode) }}" 
+                        {% if current_user.has_wx_qrcode() %}
+                            <div class="mb-3 text-center" id="qrcode-preview-container">
+                                <img id="qrcode-preview" 
+                                     src="{{ url_for('user.get_qrcode', agent_id=current_user.agent_id) }}?t={{ current_user.updated_time.timestamp() }}" 
                                      class="img-thumbnail" style="max-width: 200px"
                                      alt="当前微信收款码">
+                                <div class="mt-2">
+                                    <small class="text-muted">当前二维码</small>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="mb-3 text-center" id="qrcode-preview-container" style="display: none;">
+                                <img id="qrcode-preview" 
+                                     src="#" 
+                                     class="img-thumbnail" style="max-width: 200px"
+                                     alt="二维码预览">
+                                <div class="mt-2">
+                                    <small class="text-muted">新选择的二维码</small>
+                                </div>
                             </div>
                         {% endif %}
                         <input type="file" class="form-control" id="wx_qrcode" name="wx_qrcode" accept="image/*">

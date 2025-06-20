@@ -79,10 +79,10 @@
                             <strong>空闲时间：</strong>
                             <p class="text-break mt-2">{{ record.agent.free_time }}</p>
                         </div>
-                        {% if record.agent.wx_qrcode %}
+                        {% if record.agent.has_wx_qrcode() %}
                             <div class="text-center mt-4">
                                 <strong class="d-block mb-3">微信二维码：</strong>
-                                <img src="{{ url_for('static', filename='uploads/' + record.agent.wx_qrcode) }}" 
+                                <img src="{{ url_for('user.get_qrcode', agent_id=record.agent.agent_id) }}?t={{ record.agent.updated_time.timestamp() }}" 
                                      class="img-fluid" 
                                      alt="微信二维码"
                                      loading="lazy">
@@ -116,10 +116,10 @@
                                            placeholder="请输入打赏金额">
                                 </div>
                             </div>
-                            {% if record.agent.wx_qrcode %}
+                            {% if record.agent.has_wx_qrcode() %}
                                 <div class="text-center mt-4">
                                     <strong class="d-block mb-3">微信收款码：</strong>
-                                    <img src="{{ url_for('static', filename='uploads/' + record.agent.wx_qrcode) }}" 
+                                    <img src="{{ url_for('user.get_qrcode', agent_id=record.agent.agent_id) }}?t={{ record.agent.updated_time.timestamp() }}" 
                                          class="img-fluid mb-3" 
                                          alt="微信收款码"
                                          loading="lazy">
