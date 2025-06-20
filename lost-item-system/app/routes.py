@@ -4,6 +4,7 @@ import os
 from app import db
 from app.models import Agent, FoundRecord, FoundItem, Reward, FoundHistory
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy.orm import selectinload
 
 main = Blueprint('main', __name__)
 
@@ -12,6 +13,9 @@ main = Blueprint('main', __name__)
 def index():
     latest_items = FoundRecord.query.join(Agent).filter(
         Agent.status == 1
+    ).options(
+        selectinload(FoundRecord.items),
+        selectinload(FoundRecord.agent)
     ).order_by(FoundRecord.created_time.desc()).limit(6).all()
     return render_template('index.html', latest_items=latest_items)
 
@@ -117,7 +121,12 @@ def search():
         if location:
             query = query.filter(FoundRecord.pickup_location.ilike(f'%{location}%'))
     
-    records = query.order_by(FoundRecord.created_time.desc()).all()
+    # 优化查询：预加载关联数据，避免N+1查询
+    records = query.options(
+        selectinload(FoundRecord.items),
+        selectinload(FoundRecord.agent)
+    ).order_by(FoundRecord.created_time.desc()).limit(20).all()
+    
     return render_template('search.html', records=records, keyword=keyword, location=location)
 
 @main.route('/profile', methods=['GET', 'POST'])

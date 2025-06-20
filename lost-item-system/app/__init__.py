@@ -22,28 +22,42 @@ def create_app():
     from config.config import Config
     app.config.from_object(Config)
     
-    # 设置SQLAlchemy数据库URI
+    # 优化数据库配置
     app.config['SQLALCHEMY_DATABASE_URI'] = (
         f"mysql+pymysql://{Config.MYSQL_USER}:{Config.MYSQL_PASSWORD}"
-        f"@{Config.MYSQL_HOST}/{Config.MYSQL_DB}"
+        f"@{Config.MYSQL_HOST}/{Config.MYSQL_DB}?charset=utf8mb4"
+        f"&autocommit=true&connect_timeout=10&read_timeout=10&write_timeout=10"
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 5,
+        'pool_timeout': 20,
+        'pool_recycle': 3600,
+        'max_overflow': 10,
+        'pool_pre_ping': True
+    }
     
     # 确保上传文件夹存在
-    os.makedirs(os.path.join(app.static_folder, 'uploads'), exist_ok=True)
+    uploads_dir = os.path.join(app.static_folder, 'uploads')
+    if not os.path.exists(uploads_dir):
+        os.makedirs(uploads_dir, exist_ok=True)
     
-    # 初始化数据库
+    # 初始化扩展
     db.init_app(app)
-    
-    # 初始化登录管理器
     login_manager.init_app(app)
     login_manager.login_view = 'main.login'
     login_manager.login_message = '请先登录'
     
-    # 注册蓝图
+    # 延迟导入和注册蓝图
+    from app.routes import main
+    app.register_blueprint(main)
+    
+    # 使用app_context来创建表（替代before_first_request）
     with app.app_context():
-        from app.routes import main
-        app.register_blueprint(main)
-        db.create_all()
+        try:
+            db.create_all()
+            print("数据库表检查/创建成功!")
+        except Exception as e:
+            print(f"数据库初始化警告: {e}")
         
     return app
