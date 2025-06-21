@@ -227,9 +227,11 @@ document.addEventListener('DOMContentLoaded', function() {
             title: recordData.pickup_location,
             icon: new AMap.Icon({
                 size: new AMap.Size(36, 36),
-                image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                image: '/static/images/biaoji.jpg',
                 imageSize: new AMap.Size(36, 36)
-            })
+            }),
+            // 设置锚点为图片下边缘的中心
+            anchor: 'bottom-center'
         });
 
         map.add(marker);

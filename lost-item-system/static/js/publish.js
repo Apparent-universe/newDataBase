@@ -326,9 +326,11 @@ class PublishModule {
             position: [position.lng, position.lat],
             icon: new AMap.Icon({
                 size: new AMap.Size(32, 32),
-                image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                image: '/static/images/biaoji.jpg',
                 imageSize: new AMap.Size(32, 32)
             }),
+            // 设置锚点为图片下边缘的中心
+            anchor: 'bottom-center',
             title: '选中的位置'
         });
 

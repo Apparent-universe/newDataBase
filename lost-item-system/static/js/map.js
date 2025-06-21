@@ -8,7 +8,6 @@ class MapSearchModule {
         this.currentLocationMarker = null;
         this.currentLocation = null;
         this.allRecords = [];
-        this.filteredRecords = [];
         this.infoWindow = null;
         this.geolocation = null;
         
@@ -30,7 +29,7 @@ class MapSearchModule {
         // 初始化地图
         this.map = new AMap.Map('map-container', {
             zoom: 13,
-            center: [116.397428, 39.90923], // 北京天安门
+            center: [37.52988500, 122.06023000], //大鸡翅
             mapStyle: 'amap://styles/normal',
             showLabel: true
         });
@@ -56,31 +55,43 @@ class MapSearchModule {
 
         // 地图加载完成后隐藏loading
         this.map.on('complete', () => {
-            document.querySelector('.loading').style.display = 'none';
+            const loadingElement = document.querySelector('.loading');
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
         });
     }
 
     bindEvents() {
         // 定位按钮事件
-        document.getElementById('current-location-btn').addEventListener('click', () => {
-            this.getCurrentLocation();
-        });
+        const currentLocationBtn = document.getElementById('current-location-btn');
+        if (currentLocationBtn) {
+            currentLocationBtn.addEventListener('click', () => {
+                this.getCurrentLocation();
+            });
+        }
 
         // 搜索半径变化事件
-        document.getElementById('search-radius').addEventListener('change', () => {
-            if (this.currentLocation) {
-                this.searchNearbyRecords();
-            }
-        });
+        const searchRadius = document.getElementById('search-radius');
+        if (searchRadius) {
+            searchRadius.addEventListener('change', () => {
+                if (this.currentLocation) {
+                    this.searchNearbyRecords();
+                }
+            });
+        }
 
         // 物品筛选事件
-        let filterTimeout;
-        document.getElementById('item-filter').addEventListener('input', (e) => {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => {
-                this.filterRecords(e.target.value);
-            }, 300);
-        });
+        const itemFilter = document.getElementById('item-filter');
+        if (itemFilter) {
+            let filterTimeout;
+            itemFilter.addEventListener('input', (e) => {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(() => {
+                    this.filterRecords(e.target.value);
+                }, 300);
+            });
+        }
     }
 
     async loadMapData() {
@@ -112,14 +123,11 @@ class MapSearchModule {
                 title: record.pickup_location,
                 icon: new AMap.Icon({
                     size: new AMap.Size(32, 32),
-                    image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+                    image: '/static/images/biaoji.jpg',
                     imageSize: new AMap.Size(32, 32)
-                })
-            });
-
-            // 点击标记显示信息窗体
-            marker.on('click', () => {
-                this.showRecordInfo(record, marker);
+                }),
+                // 设置锚点为图片下边缘的中心 (相对位置: 0.5=中心, 1.0=底部)
+                anchor: 'bottom-center'
             });
 
             this.map.add(marker);
@@ -132,86 +140,11 @@ class MapSearchModule {
         }
     }
 
-    showRecordInfo(record, marker) {
-        const itemsHtml = record.items.map(item => 
-            `<span class="item-tag">${item}</span>`
-        ).join('');
-
-        const content = `
-            <div class="record-info-window">
-                <h6>${record.pickup_location}</h6>
-                <div class="items">${itemsHtml}</div>
-                <p><small>拾获时间: ${record.created_time}</small></p>
-                <p><small>探员: ${record.agent_username}</small></p>
-                <div class="mt-2">
-                    <button class="btn btn-sm btn-primary" onclick="mapSearch.showRecordDetail(${record.record_id})">
-                        查看详情
-                    </button>
-                </div>
-            </div>
-        `;
-
-        this.infoWindow.setContent(content);
-        this.infoWindow.open(this.map, marker.getPosition());
-    }
-
-    async showRecordDetail(recordId) {
-        try {
-            // 从当前记录中找到详细信息
-            const record = this.allRecords.find(r => r.record_id === recordId);
-            if (!record) {
-                throw new Error('记录不存在');
-            }
-
-            const itemsHtml = record.items.map(item => 
-                `<span class="badge bg-primary me-1">${item}</span>`
-            ).join('');
-
-            const content = `
-                <div class="row">
-                    <div class="col-12">
-                        <h5>拾获地点: ${record.pickup_location}</h5>
-                        ${record.formatted_address ? `<p class="text-muted">${record.formatted_address}</p>` : ''}
-                    </div>
-                    <div class="col-12 mt-3">
-                        <strong>拾获物品:</strong>
-                        <div class="mt-2">${itemsHtml}</div>
-                    </div>
-                    <div class="col-12 mt-3">
-                        <strong>详细描述:</strong>
-                        <p class="mt-2">${record.detailed_description}</p>
-                    </div>
-                    <div class="col-12 mt-3">
-                        <div class="row">
-                            <div class="col-6">
-                                <strong>拾获时间:</strong>
-                                <p>${record.created_time}</p>
-                            </div>
-                            <div class="col-6">
-                                <strong>探员:</strong>
-                                <p>${record.agent_username}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('recordDetailContent').innerHTML = content;
-            document.getElementById('viewInListBtn').href = `/items/search?record_id=${recordId}`;
-            
-            const modal = new bootstrap.Modal(document.getElementById('recordDetailModal'));
-            modal.show();
-
-        } catch (error) {
-            console.error('显示记录详情失败:', error);
-            alert('显示记录详情失败: ' + error.message);
-        }
-    }
-
     getCurrentLocation() {
         const btn = document.getElementById('current-location-btn');
-        const originalText = btn.innerHTML;
+        if (!btn) return;
         
+        const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 定位中...';
         btn.disabled = true;
 
@@ -255,9 +188,11 @@ class MapSearchModule {
             title: '我的位置',
             icon: new AMap.Icon({
                 size: new AMap.Size(36, 36),
-                image: 'https://webapi.amap.com/theme/v1.3/markers/n/loc.png',
+                image: '/static/images/biaoji.jpg',
                 imageSize: new AMap.Size(36, 36)
-            })
+            }),
+            // 设置锚点为图片下边缘的中心
+            anchor: 'bottom-center'
         });
 
         this.map.add(this.currentLocationMarker);
@@ -269,7 +204,8 @@ class MapSearchModule {
         }
 
         try {
-            const radius = document.getElementById('search-radius').value;
+            const radiusElement = document.getElementById('search-radius');
+            const radius = radiusElement ? radiusElement.value : 10;
             
             const response = await fetch('/api/map/nearby', {
                 method: 'POST',
@@ -301,7 +237,11 @@ class MapSearchModule {
         const recordsList = document.getElementById('records-list');
         const recordsCount = document.getElementById('records-count');
         
-        recordsCount.textContent = records.length;
+        if (recordsCount) {
+            recordsCount.textContent = records.length;
+        }
+
+        if (!recordsList) return;
 
         if (records.length === 0) {
             recordsList.innerHTML = '<div class="col-12 text-center text-muted">附近没有找到拾获记录</div>';
@@ -347,7 +287,6 @@ class MapSearchModule {
             if (marker) {
                 this.map.setCenter([record.longitude, record.latitude]);
                 this.map.setZoom(16);
-                this.showRecordInfo(record, marker);
             }
         }
     }
@@ -384,7 +323,9 @@ class MapSearchModule {
         `;
         
         const container = document.querySelector('.container-fluid');
-        container.insertAdjacentHTML('afterbegin', alertHtml);
+        if (container) {
+            container.insertAdjacentHTML('afterbegin', alertHtml);
+        }
     }
 }
 
