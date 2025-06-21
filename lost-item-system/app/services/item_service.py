@@ -108,14 +108,19 @@ class ItemService:
                     'item_name': item.item_name
                 })
             
-            # 创建归档记录
+            # 创建归档记录（包含地理位置字段）
             archived_record = ArchivedRecord(
                 original_record_id=record.record_id,
                 agent_id=record.agent_id,
                 pickup_location=record.pickup_location,
+                # 复制地理位置字段
+                latitude=record.latitude,
+                longitude=record.longitude,
+                formatted_address=record.formatted_address,
                 detailed_description=record.detailed_description,
                 hidden_info=record.hidden_info,
                 created_time=record.created_time,
+                updated_time=record.updated_time,  # 复制更新时间
                 archive_reason='USER_ARCHIVE',
                 archived_by_agent_id=current_user_id
             )
@@ -159,14 +164,19 @@ class ItemService:
                     'item_name': item.item_name
                 })
             
-            # 创建归档记录（标记为删除）
+            # 创建归档记录（标记为删除，包含地理位置字段）
             archived_record = ArchivedRecord(
                 original_record_id=record.record_id,
                 agent_id=record.agent_id,
                 pickup_location=record.pickup_location,
+                # 复制地理位置字段
+                latitude=record.latitude,
+                longitude=record.longitude,
+                formatted_address=record.formatted_address,
                 detailed_description=record.detailed_description,
                 hidden_info=record.hidden_info,
                 created_time=record.created_time,
+                updated_time=record.updated_time,  # 复制更新时间
                 archive_reason='USER_DELETE',
                 archived_by_agent_id=current_user_id
             )
@@ -206,13 +216,18 @@ class ItemService:
             if archived_record.archive_reason == 'USER_DELETE':
                 return {'success': False, 'message': '已删除的记录无法恢复'}
             
-            # 创建新的活跃记录
+            # 创建新的活跃记录（包含地理位置字段）
             new_record = FoundRecord(
                 agent_id=archived_record.agent_id,
                 pickup_location=archived_record.pickup_location,
+                # 恢复地理位置字段
+                latitude=archived_record.latitude,
+                longitude=archived_record.longitude,
+                formatted_address=archived_record.formatted_address,
                 detailed_description=archived_record.detailed_description,
                 hidden_info=archived_record.hidden_info,
-                created_time=archived_record.created_time
+                created_time=archived_record.created_time,
+                updated_time=archived_record.updated_time or archived_record.created_time
             )
             db.session.add(new_record)
             db.session.flush()

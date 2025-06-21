@@ -99,13 +99,18 @@ class FoundHistory(db.Model):
 # 新增归档表
 class ArchivedRecord(db.Model):
     __tablename__ = 'archived_record'
-    archived_record_id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # 匹配现有主键名
+    archived_record_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     original_record_id = db.Column(db.Integer, nullable=False)  # 原记录ID
     agent_id = db.Column(db.Integer, db.ForeignKey('agent.agent_id'), nullable=False)
     pickup_location = db.Column(db.String(255), nullable=False)
+    # 新增地理位置字段（与FoundRecord保持一致）
+    latitude = db.Column(db.DECIMAL(10, 8), nullable=True)  # 纬度
+    longitude = db.Column(db.DECIMAL(11, 8), nullable=True)  # 经度
+    formatted_address = db.Column(db.String(500), nullable=True)  # 格式化地址
     detailed_description = db.Column(db.Text)
     hidden_info = db.Column(db.Text)
-    created_time = db.Column(db.DateTime, nullable=False)  # 匹配现有字段名
+    created_time = db.Column(db.DateTime, nullable=False)  # 原创建时间
+    updated_time = db.Column(db.DateTime, nullable=True)  # 原更新时间
     archived_time = db.Column(db.DateTime, default=datetime.now)  # 归档时间
     archive_reason = db.Column(db.Enum('USER_ARCHIVE', 'USER_DELETE', 'AUTO_ARCHIVE'), nullable=True)
     archived_by_agent_id = db.Column(db.Integer, db.ForeignKey('agent.agent_id'), nullable=True)
@@ -115,6 +120,21 @@ class ArchivedRecord(db.Model):
     archived_by = db.relationship('Agent', foreign_keys=[archived_by_agent_id])
     items = db.relationship('ArchivedItem', backref='record', lazy=True, cascade='all, delete-orphan')
     
+    def has_location(self):
+        """检查是否有地理坐标"""
+        return self.latitude is not None and self.longitude is not None
+    
+    def get_location_dict(self):
+        """获取位置信息字典"""
+        if self.has_location():
+            return {
+                'latitude': float(self.latitude),
+                'longitude': float(self.longitude),
+                'formatted_address': self.formatted_address,
+                'pickup_location': self.pickup_location
+            }
+        return None
+
 class ArchivedItem(db.Model):
     __tablename__ = 'archived_item'
     archived_item_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -136,14 +156,19 @@ def check_and_auto_archive():
         
         archived_count = 0
         for record in old_records:
-            # 创建归档记录
+            # 创建归档记录（包含所有字段）
             archived_record = ArchivedRecord(
                 original_record_id=record.record_id,
                 agent_id=record.agent_id,
                 pickup_location=record.pickup_location,
+                # 复制地理位置字段
+                latitude=record.latitude,
+                longitude=record.longitude,
+                formatted_address=record.formatted_address,
                 detailed_description=record.detailed_description,
                 hidden_info=record.hidden_info,
                 created_time=record.created_time,
+                updated_time=record.updated_time,  # 复制更新时间
                 archive_reason='AUTO_ARCHIVE',
                 archived_by_agent_id=None  # 自动归档无操作用户
             )
